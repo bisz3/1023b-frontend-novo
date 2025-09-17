@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env._API_URL, // Corrigido: sem aspas
+        target: process.env.API_URL, // Corrigido: sem aspas
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
