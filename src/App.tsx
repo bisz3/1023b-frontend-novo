@@ -116,7 +116,7 @@ function App() {
             <p>{produto.descricao}</p>
             <p>R$ {produto.preco}</p>
             <p>{produto.nome}</p>
-            <button></button>
+            <button>Comprar</button>
           </li>
         ))}
       </ul>
