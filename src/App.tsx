@@ -65,14 +65,16 @@ function App() {
       });
       
       if (!response.ok) {
-        let errText = 'Erro ao cadastrar produto'
+        // Build a richer error message containing HTTP status and response body
+        const status = response.status
+        let bodyText = ''
         try {
-          const err = await response.json()
-          errText = err.error || JSON.stringify(err)
+          const json = await response.json()
+          bodyText = json.error || JSON.stringify(json)
         } catch {
-          errText = await response.text()
+          try { bodyText = await response.text() } catch { bodyText = '<no body>' }
         }
-        throw new Error(errText)
+        throw new Error(`HTTP ${status} - ${bodyText}`)
       }
       
       // Limpar o formulário após o envio
@@ -97,8 +99,9 @@ function App() {
       
       alert('Produto cadastrado com sucesso!');
     } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao cadastrar produto: ' + (error instanceof Error ? error.message : String(error)))
+      console.error('Erro ao cadastrar produto:', error);
+      const msg = error instanceof Error ? error.message : String(error)
+      alert('Erro ao cadastrar produto: ' + msg)
     }
   }
 
