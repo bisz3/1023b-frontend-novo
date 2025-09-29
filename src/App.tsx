@@ -45,6 +45,9 @@ function App() {
     descricao: ''
   });
 
+  // Simple user identifier used when adding to cart. Kept editable for testing.
+  const [usuarioId, setUsuarioId] = useState<string>('u1')
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -146,6 +149,10 @@ function App() {
       <button type="submit" style={{ padding: '8px', cursor: 'pointer' }}>Cadastrar</button>
     </form>
       <h1>Produtos</h1>
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ marginRight: '8px' }}>usuarioId:</label>
+        <input value={usuarioId} onChange={e => setUsuarioId(e.target.value)} />
+      </div>
       <ul style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
         {produtos.map(produto => (
           <li key={produto.id} style={{ margin: '10px' }}>
@@ -153,7 +160,30 @@ function App() {
             <p>{produto.descricao}</p>
             <p>R$ {produto.preco}</p>
             <p>{produto.nome}</p>
-            <button>Comprar</button>
+            <button onClick={async () => {
+              const pid = produto.id?.toString ? produto.id.toString() : String(produto.id)
+              try {
+                const resp = await fetch(`${API_BASE}/carrinho`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ usuarioId, produtoId: pid, quantidade: 1 })
+                })
+
+                if (!resp.ok) {
+                  let bodyText = ''
+                  try { const j = await resp.json(); bodyText = j.error || JSON.stringify(j) } catch { bodyText = await resp.text().catch(() => '<no body>') }
+                  alert(`Erro ao adicionar ao carrinho: HTTP ${resp.status} - ${bodyText}`)
+                  return
+                }
+
+                const json = await resp.json().catch(() => null)
+                console.log('Adicionado ao carrinho:', json)
+                alert('Item adicionado ao carrinho')
+              } catch (err) {
+                console.error('Erro ao chamar /carrinho', err)
+                alert('Erro ao adicionar ao carrinho: ' + (err instanceof Error ? err.message : String(err)))
+              }
+            }}>Adicionar ao carrinho</button>
           </li>
         ))}
       </ul>
