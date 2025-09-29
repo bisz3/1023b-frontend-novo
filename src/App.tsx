@@ -45,7 +45,14 @@ function App() {
       });
       
       if (!response.ok) {
-        throw new Error('Erro ao cadastrar produto');
+        let errText = 'Erro ao cadastrar produto'
+        try {
+          const err = await response.json()
+          errText = err.error || JSON.stringify(err)
+        } catch {
+          errText = await response.text()
+        }
+        throw new Error(errText)
       }
       
       // Limpar o formulário após o envio
@@ -64,7 +71,7 @@ function App() {
       alert('Produto cadastrado com sucesso!');
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao cadastrar produto. Por favor, tente novamente.');
+      alert('Erro ao cadastrar produto: ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 
