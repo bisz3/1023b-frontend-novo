@@ -2,20 +2,40 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 interface ProdutoType {
-  id: number
+  id: string | number
   nome: string
   preco: number
   urlfoto: string
   descricao: string
 }
 
+interface RawProduto {
+  id?: string | number
+  _id?: { toString?: () => string } | string | number
+  nome: string
+  preco: number
+  urlfoto: string
+  descricao: string
+}
+const API_BASE = (import.meta as unknown as { env: Record<string, string | undefined> }).env.VITE_API_URL || '/api'
+
 function App() {
   const [produtos, setProdutos] = useState<ProdutoType[]>([])
 
+
   useEffect(() => {
-    fetch('/api/produtos')
+    fetch(`${API_BASE}/produtos`)
       .then(response => response.json())
-      .then(data => setProdutos(data))
+      .then((data: RawProduto[]) => {
+        const normalized: ProdutoType[] = data.map((p: RawProduto) => ({
+          id: p.id ?? (p._id ? (typeof p._id === 'object' && p._id.toString ? p._id.toString() : p._id) : undefined) as string | number,
+          nome: p.nome,
+          preco: p.preco,
+          urlfoto: p.urlfoto,
+          descricao: p.descricao
+        }))
+        setProdutos(normalized)
+      })
   }, [])
 
   const [formData, setFormData] = useState<Omit<ProdutoType, 'id'>>({ 
@@ -36,7 +56,7 @@ function App() {
   const handleForm = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const response = await fetch('/api/produtos', {
+      const response = await fetch(`${API_BASE}/produtos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,9 +84,16 @@ function App() {
       });
       
       // Atualizar a lista de produtos
-      const produtosResponse = await fetch('/api/produtos');
-      const data = await produtosResponse.json();
-      setProdutos(data);
+      const produtosResponse = await fetch(`${API_BASE}/produtos`);
+      const data = await produtosResponse.json() as RawProduto[];
+      const normalized = data.map((p: RawProduto) => ({
+        id: p.id ?? (p._id ? (typeof p._id === 'object' && p._id.toString ? p._id.toString() : p._id) : undefined) as string | number,
+        nome: p.nome,
+        preco: p.preco,
+        urlfoto: p.urlfoto,
+        descricao: p.descricao
+      }))
+      setProdutos(normalized);
       
       alert('Produto cadastrado com sucesso!');
     } catch (error) {
