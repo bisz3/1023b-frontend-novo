@@ -8,11 +8,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        // Use API_URL from env when available, otherwise default to localhost:8000
-        target: process.env.API_URL || 'http://localhost:8000',
+        target: process.env.API_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  }
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

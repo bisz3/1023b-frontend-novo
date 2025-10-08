@@ -2,58 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Loja de exemplo - 1023B" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <!-- Fonte moderna -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <title>1023B - Loja</title>
-  <!-- build-trigger: 2025-09-29T00:00:00Z -->
-    <style>
-      :root{--bg1:#0f172a;--bg2:#0b1220;--accent:#7c3aed;--muted:#94a3b8}
-      html,body,#root{height:100%;}
-      body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial; background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#e6eef8; -webkit-font-smoothing:antialiased;}
-      .app-shell{min-height:100%;display:flex;flex-direction:column}
-      header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);backdrop-filter:blur(6px)}
-      .brand{display:flex;align-items:center;gap:12px}
-      .logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(45deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700}
-      .brand h1{font-size:16px;margin:0}
-      main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:40px}
-      .container{width:100%;max-width:1100px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:14px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-      footer{padding:16px 28px;text-align:center;color:var(--muted);font-size:13px}
-      /* small helpers */
-      .hero{display:flex;align-items:center;gap:24px}
-      .hero .title{font-size:20px;font-weight:600}
-      @media (max-width:700px){header{padding:12px}main{padding:20px}.container{padding:18px}}
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
   </head>
   <body>
-    <div class="app-shell">
-      <header>
-        <div class="brand">
-          <div class="logo">1023</div>
-          <div>
-            <h1>1023B - Loja</h1>
-            <div style="font-size:12px;color:var(--muted)">Front-end Vite + React + TypeScript</div>
-          </div>
-        </div>
-        <nav aria-label="main">
-          <a href="#" style="color:var(--muted);text-decoration:none;margin-right:12px">Produtos</a>
-          <a href="#" style="color:var(--muted);text-decoration:none">Carrinho</a>
-        </nav>
-      </header>
-
-      <main>
-        <div class="container" id="root">
-          <!-- React monta aqui -->
-        </div>
-      </main>
-
-      <footer>
-        Desenvolvido com ♥ — 1023B • Projeto de exemplo
-      </footer>
-    </div>
-
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

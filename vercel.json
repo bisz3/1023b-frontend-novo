@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://one023b-backend2.onrender.com/:path*"
+            "destination": "https://one023-backend-2semestre.onrender.com/:path*"
         }
     ]
 }

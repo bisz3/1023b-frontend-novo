@@ -1,54 +1,52 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { useState, useEffect } from 'react';
+import './App.css';
+import { formatarMoeda } from './utils/formatadores';
+import { fetchCarrinho, adicionarAoCarrinho, removerDoCarrinho } from './services/api';
+
+interface Usuario {
+  _id: string;
+  nome: string;
+  email: string;
+}
+
+interface LoginFormData {
+  email: string;
+  senha: string;
+}
+
+interface CadastroFormData extends LoginFormData {
+  nome: string;
+  confirmarSenha: string;
+}
 
 interface ProdutoType {
-  id: string | number
-  nome: string
-  preco: number
-  urlfoto: string
-  descricao: string
+  _id: string;
+  nome: string;
+  preco: number;
+  urlfoto: string;
+  descricao: string;
 }
 
-interface RawProduto {
-  id?: string | number
-  _id?: { toString?: () => string } | string | number
-  nome: string
-  preco: number
-  urlfoto: string
-  descricao: string
+interface ItemCarrinho {
+  _id: string;
+  produto: ProdutoType;
+  quantidade: number;
+  criadoEm: string;
 }
-const API_BASE = (import.meta as unknown as { env: Record<string, string | undefined> }).env.VITE_API_URL || '/api'
 
-function App() {
-  const [produtos, setProdutos] = useState<ProdutoType[]>([])
+interface ProdutoFormProps {
+  onProdutoCadastrado: () => void;
+}
 
-
-  useEffect(() => {
-    fetch(`${API_BASE}/produtos`)
-      .then(response => response.json())
-      .then((data: RawProduto[]) => {
-        const normalized: ProdutoType[] = data.map((p: RawProduto) => ({
-          id: p.id ?? (p._id ? (typeof p._id === 'object' && p._id.toString ? p._id.toString() : p._id) : undefined) as string | number,
-          nome: p.nome,
-          preco: p.preco,
-          urlfoto: p.urlfoto,
-          descricao: p.descricao
-        }))
-        setProdutos(normalized)
-      })
-  }, [])
-
-  const [formData, setFormData] = useState<Omit<ProdutoType, 'id'>>({ 
+const ProdutoForm: React.FC<ProdutoFormProps> = ({ onProdutoCadastrado }) => {
+  const [formData, setFormData] = useState<Omit<ProdutoType, 'id' | '_id'>>({
     nome: '',
     preco: 0,
     urlfoto: '',
     descricao: ''
   });
 
-  // Simple user identifier used when adding to cart. Kept editable for testing.
-  const [usuarioId, setUsuarioId] = useState<string>('u1')
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -59,136 +57,447 @@ function App() {
   const handleForm = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const response = await fetch(`${API_BASE}/produtos`, {
+      const response = await fetch('/api/produtos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData)
       });
-      
+
       if (!response.ok) {
-        // Build a richer error message containing HTTP status and response body
-        const status = response.status
-        let bodyText = ''
-        try {
-          const json = await response.json()
-          bodyText = json.error || JSON.stringify(json)
-        } catch {
-          try { bodyText = await response.text() } catch { bodyText = '<no body>' }
-        }
-        throw new Error(`HTTP ${status} - ${bodyText}`)
+        throw new Error('Erro ao cadastrar produto');
       }
-      
-      // Limpar o formulário após o envio
-      setFormData({ 
+
+      // Limpar o formulário
+      setFormData({
         nome: '',
         preco: 0,
         urlfoto: '',
         descricao: ''
       });
-      
-      // Atualizar a lista de produtos
-      const produtosResponse = await fetch(`${API_BASE}/produtos`);
-      const data = await produtosResponse.json() as RawProduto[];
-      const normalized = data.map((p: RawProduto) => ({
-        id: p.id ?? (p._id ? (typeof p._id === 'object' && p._id.toString ? p._id.toString() : p._id) : undefined) as string | number,
-        nome: p.nome,
-        preco: p.preco,
-        urlfoto: p.urlfoto,
-        descricao: p.descricao
-      }))
-      setProdutos(normalized);
-      
+
+      // Notificar o componente pai para atualizar a lista
+      onProdutoCadastrado();
       alert('Produto cadastrado com sucesso!');
     } catch (error) {
-      console.error('Erro ao cadastrar produto:', error);
-      const msg = error instanceof Error ? error.message : String(error)
-      alert('Erro ao cadastrar produto: ' + msg)
+      console.error('Erro:', error);
+      alert('Erro ao cadastrar produto. Por favor, tente novamente.');
     }
-  }
+  };
 
   return (
-    <>
-    <div>Cadastro de Produtos</div>
-    <form onSubmit={handleForm} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px', marginBottom: '20px' }}>
-      <input 
-        type="text" 
-        name="nome" 
-        placeholder="Nome"
-        value={formData.nome}
-        onChange={handleInputChange}
-        required
-      />
-      <input 
-        type="number" 
-        name="preco" 
-        placeholder="Preço"
-        value={formData.preco || ''}
-        onChange={handleInputChange}
-        step="0.01"
-        min="0"
-        required
-      />
-      <input 
-        type="url" 
-        name="urlfoto" 
-        placeholder="URL da imagem"
-        value={formData.urlfoto}
-        onChange={handleInputChange}
-        required
-      />
-      <input 
-        type="text" 
-        name="descricao" 
-        placeholder="Descrição"
-        value={formData.descricao}
-        onChange={handleInputChange}
-        required
-      />
-      <button type="submit" style={{ padding: '8px', cursor: 'pointer' }}>Cadastrar</button>
-    </form>
-      <h1>Produtos</h1>
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ marginRight: '8px' }}>usuarioId:</label>
-        <input value={usuarioId} onChange={e => setUsuarioId(e.target.value)} />
+    <form onSubmit={handleForm} className="produto-form">
+      <div className="form-group">
+        <label>Nome:</label>
+        <input
+          type="text"
+          name="nome"
+          value={formData.nome}
+          onChange={handleInputChange}
+          required
+        />
       </div>
-      <ul style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-        {produtos.map(produto => (
-          <li key={produto.id} style={{ margin: '10px' }}>
-            <img src={produto.urlfoto} alt={produto.nome} width={200} />
-            <p>{produto.descricao}</p>
-            <p>R$ {produto.preco}</p>
-            <p>{produto.nome}</p>
-            <button onClick={async () => {
-              const pid = produto.id?.toString ? produto.id.toString() : String(produto.id)
-              try {
-                const resp = await fetch(`${API_BASE}/carrinho`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ usuarioId, produtoId: pid, quantidade: 1 })
-                })
 
-                if (!resp.ok) {
-                  let bodyText = ''
-                  try { const j = await resp.json(); bodyText = j.error || JSON.stringify(j) } catch { bodyText = await resp.text().catch(() => '<no body>') }
-                  alert(`Erro ao adicionar ao carrinho: HTTP ${resp.status} - ${bodyText}`)
-                  return
-                }
+      <div className="form-group">
+        <label>Preço:</label>
+        <input
+          type="number"
+          name="preco"
+          value={formData.preco || ''}
+          onChange={handleInputChange}
+          step="0.01"
+          min="0"
+          required
+        />
+      </div>
 
-                const json = await resp.json().catch(() => null)
-                console.log('Adicionado ao carrinho:', json)
-                alert('Item adicionado ao carrinho')
-              } catch (err) {
-                console.error('Erro ao chamar /carrinho', err)
-                alert('Erro ao adicionar ao carrinho: ' + (err instanceof Error ? err.message : String(err)))
-              }
-            }}>Adicionar ao carrinho</button>
-          </li>
-        ))}
-      </ul>
-    </>
-  )
+      <div className="form-group">
+        <label>URL da Imagem:</label>
+        <input
+          type="url"
+          name="urlfoto"
+          value={formData.urlfoto}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Descrição:</label>
+        <textarea
+          name="descricao"
+          value={formData.descricao}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <button type="submit" className="botao-cadastrar">
+        Cadastrar Produto
+      </button>
+    </form>
+  );
+};
+
+function App() {
+  const [produtos, setProdutos] = useState<ProdutoType[]>([]);
+  const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [mostrarLogin, setMostrarLogin] = useState(true); // Alternar entre login e cadastro
+  const [erro, setErro] = useState('');
+
+  // Estado para os formulários
+  const [loginForm, setLoginForm] = useState<LoginFormData>({
+    email: '',
+    senha: ''
+  });
+
+  const [cadastroForm, setCadastroForm] = useState<CadastroFormData>({
+    nome: '',
+    email: '',
+    senha: '',
+    confirmarSenha: ''
+  });
+
+  // Verifica se tem usuário logado ao carregar a aplicação
+  useEffect(() => {
+    const usuarioSalvo = localStorage.getItem('usuario');
+    if (usuarioSalvo) {
+      setUsuario(JSON.parse(usuarioSalvo));
+    } else {
+      // Se não houver usuário, para de carregar para mostrar a tela de login
+      setCarregando(false);
+    }
+  }, []);
+
+  // Efeito para carregar os dados quando o usuário estiver logado
+  useEffect(() => {
+    if (usuario) {
+      carregarDados();
+    } else {
+      // Limpa os dados quando deslogar
+      setProdutos([]);
+      setCarrinho([]);
+    }
+  }, [usuario]);
+
+  const carregarDados = async () => {
+    if (!usuario) return;
+    
+    try {
+      setCarregando(true);
+      setErro('');
+      
+      const [responseProdutos, carrinhoData] = await Promise.all([
+        fetch('/api/produtos'),
+        fetchCarrinho()
+      ]);
+      
+      if (!responseProdutos.ok) throw new Error('Erro ao carregar produtos');
+      
+      const produtosData = await responseProdutos.json();
+      setProdutos(produtosData);
+      setCarrinho(carrinhoData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setErro('Erro ao carregar os dados. Tente novamente.');
+      // Se houver erro de autenticação, faz logout
+      if (error instanceof Error && error.message.includes('autenticação')) {
+        handleLogout();
+      }
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    
+    try {
+      setCarregando(true);
+      const response = await fetch('/api/usuarios/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginForm.email,
+          senha: loginForm.senha
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Credenciais inválidas');
+      }
+
+      const data = await response.json();
+      
+      // Atualiza o estado do usuário
+      setUsuario(data.usuario);
+      localStorage.setItem('usuario', JSON.stringify(data.usuario));
+      
+      // Limpa o formulário
+      setLoginForm({
+        email: '',
+        senha: ''
+      });
+      
+    } catch (error) {
+      console.error('Erro no login:', error);
+      setErro(error instanceof Error ? error.message : 'Falha no login. Verifique suas credenciais.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleCadastro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro('');
+
+    if (cadastroForm.senha !== cadastroForm.confirmarSenha) {
+      setErro('As senhas não coincidem');
+      return;
+    }
+
+    try {
+      setCarregando(true);
+      const response = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: cadastroForm.nome,
+          email: cadastroForm.email,
+          senha: cadastroForm.senha
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao cadastrar');
+      }
+
+      const data = await response.json();
+      
+      // Atualiza o estado do usuário sem chamar handleLogin
+      setUsuario(data.usuario);
+      localStorage.setItem('usuario', JSON.stringify(data.usuario));
+      
+      // Reseta o formulário
+      setCadastroForm({
+        nome: '',
+        email: '',
+        senha: '',
+        confirmarSenha: ''
+      });
+      
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      setErro(error instanceof Error ? error.message : 'Erro ao cadastrar usuário');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setUsuario(null);
+    localStorage.removeItem('usuario');
+  };
+
+  const handleAdicionarAoCarrinho = async (produtoId: string) => {
+    try {
+      await adicionarAoCarrinho(produtoId);
+      const novoCarrinho = await fetchCarrinho();
+      setCarrinho(novoCarrinho);
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error);
+    }
+  };
+
+  const handleRemoverDoCarrinho = async (itemId: string) => {
+    try {
+      await removerDoCarrinho(itemId);
+      const novoCarrinho = await fetchCarrinho();
+      setCarrinho(novoCarrinho);
+    } catch (error) {
+      console.error('Erro ao remover do carrinho:', error);
+    }
+  };
+
+  // Função para ser chamada após cadastrar um novo produto
+  const handleProdutoCadastrado = async () => {
+    try {
+      const response = await fetch('/api/produtos');
+      if (!response.ok) throw new Error('Erro ao carregar produtos');
+      const data = await response.json();
+      setProdutos(data);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+      setErro('Erro ao carregar a lista de produtos');
+    }
+  };
+
+  // Se não estiver autenticado, mostrar formulário de login/cadastro
+  if (!usuario) {
+    return (
+      <div className="auth-container">
+        <div className="auth-box">
+          <div className="auth-tabs">
+            <button 
+              className={`tab ${mostrarLogin ? 'active' : ''}`}
+              onClick={() => setMostrarLogin(true)}
+            >
+              Entrar
+            </button>
+            <button 
+              className={`tab ${!mostrarLogin ? 'active' : ''}`}
+              onClick={() => setMostrarLogin(false)}
+            >
+              Cadastrar
+            </button>
+          </div>
+
+          {erro && <div className="erro">{erro}</div>}
+
+          {mostrarLogin ? (
+            <form onSubmit={handleLogin} className="auth-form">
+              <h2>Entrar na Conta</h2>
+              <input
+                type="email"
+                placeholder="E-mail"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Senha"
+                value={loginForm.senha}
+                onChange={(e) => setLoginForm({...loginForm, senha: e.target.value})}
+                required
+              />
+              <button type="submit" disabled={carregando}>
+                {carregando ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleCadastro} className="auth-form">
+              <h2>Criar Conta</h2>
+              <input
+                type="text"
+                placeholder="Nome completo"
+                value={cadastroForm.nome}
+                onChange={(e) => setCadastroForm({...cadastroForm, nome: e.target.value})}
+                required
+              />
+              <input
+                type="email"
+                placeholder="E-mail"
+                value={cadastroForm.email}
+                onChange={(e) => setCadastroForm({...cadastroForm, email: e.target.value})}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Senha"
+                value={cadastroForm.senha}
+                onChange={(e) => setCadastroForm({...cadastroForm, senha: e.target.value})}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Confirme a senha"
+                value={cadastroForm.confirmarSenha}
+                onChange={(e) => setCadastroForm({...cadastroForm, confirmarSenha: e.target.value})}
+                required
+              />
+              <button type="submit" disabled={carregando}>
+                {carregando ? 'Cadastrando...' : 'Cadastrar'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (carregando) {
+    return <div>Carregando...</div>;
+  }
+
+  const total = carrinho.reduce(
+    (soma, item) => soma + (item.produto ? item.produto.preco * item.quantidade : 0),
+    0
+  );
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>Loja Online</h1>
+        <div className="user-info">
+          <span>Olá, {usuario.nome}</span>
+          <button onClick={handleLogout} className="btn-sair">Sair</button>
+        </div>
+      </header>
+
+      <div className="conteudo-principal">
+        <section className="cadastro-produto">
+          <h2>Cadastro de Produto</h2>
+          <ProdutoForm onProdutoCadastrado={handleProdutoCadastrado} />
+        </section>
+
+
+        <section className="lista-produtos">
+          <h2>Produtos Disponíveis</h2>
+          <div className="grade-produtos">
+            {produtos.map(produto => (
+              <div key={produto._id} className="produto-card">
+                <img src={produto.urlfoto} alt={produto.nome} />
+                <h3>{produto.nome}</h3>
+                <p>{produto.descricao}</p>
+                <p>{formatarMoeda(produto.preco)}</p>
+                <button
+                  onClick={() => handleAdicionarAoCarrinho(produto._id)}
+                  className="btn-adicionar"
+                >
+                  Adicionar ao Carrinho
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="carrinho">
+          <h2>Seu Carrinho</h2>
+          {carrinho.length === 0 ? (
+            <p>Seu carrinho está vazio</p>
+          ) : (
+            <div className="itens-carrinho">
+              {carrinho.map(item => (
+                <div key={item._id} className="item-carrinho">
+                  <img src={item.produto.urlfoto} alt={item.produto.nome} />
+                  <div>
+                    <h4>{item.produto.nome}</h4>
+                    <p>{item.quantidade} x {formatarMoeda(item.produto.preco)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoverDoCarrinho(item._id)}
+                    className="btn-remover"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+              <div className="total-carrinho">
+                <strong>Total: {formatarMoeda(total)}</strong>
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
